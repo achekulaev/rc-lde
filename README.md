@@ -30,30 +30,38 @@ Copy whole `.devcontainer` folder into your workspace root and run "Remote-Conta
 
 ## File System Performance
 
-By default bind volume is created, project files are mounted onto folder named `/workspace` inside `lamp` container, `/workspace` is in turn symlinked as `/var/www/html`.
-This is straightforward setup giving you near-instant change between local and remote.
-However bind volume despite being mounted as `delegated` for best performance can be slow on large projects (see [Advanced Containers docs](https://code.visualstudio.com/docs/remote/containers-advanced) for reference on performance and other advanced devcontainer tips).
+By default project files are bind-mounted into the folder called `/workspace` inside `lamp` container. `/workspace` is in turn symlinked as `/var/www/html` (the Apache document root).
+Bind mount is a straightforward setup giving you near-instant changes between local and remote.
 
-To get the best performance you can add `docker-compose.named-volume.yml` to the `dockerComposeFile` array in the `devcontainer.json` file. 
+However bind volume (despite being mounted as `delegated` for best performance) can be slow on large projects (see [Advanced Containers](https://code.visualstudio.com/docs/remote/containers-advanced) for reference on performance, and other advanced devcontainer tips).
 
+For those who needs the best performance this pattern has `docker-compose.named-volume.yml` that you can add to the `dockerComposeFile` array in the `devcontainer.json` file. 
+
+```json
     {
         "name": "My Project",
         "dockerComposeFile": [ "docker-compose.yml", "docker-compose.named-volume.yml" ],
         ...
+```
 
-This will override volumes definition, and create a named volume for `/workspace` instead. 
-Project files will be mounted to `/source` inside `lamp`.
-`post-create-command.sh` in this case will perform a *one-time* rsync from `/source` to `/workspace`.
+In this case:
+- `lamp` service will have a **named volume** for `/workspace` instead
+- project files from the host will be mounted to the `/source` dir not referenced bby Apache
+- `post-create-command.sh` will perform a *one-time* rsync from `/source` to `/workspace`.
 
-With this setup you can work in `/workspace` inside the container with maximum performance. 
-Usually you don't even need to sync files back to host, because you can commit them to git directly from the VSCode.
-However when you do need to sync files from `/workspace` back to `/source` (i.e. project files from host) you can use Sync-Rsync VSCode extension that is pre-installed or plain use `rsync`.
+With this setup you can work in the `/workspace` inside the container enjoying maximum performance. 
+Usually you won't even need to sync files back to `/source`, because you can commit them to Git directly from the VSCode.
+
+However when you do need to keep files in between `/workspace` and `/source` you can use Sync-Rsync VSCode extension, that comes pre-installed with this pattern (advanced users can use `rsync` from the command line).
 
 ## Environment Variables
 
-In `devcontainer.env` you can set/change Configuration Environment Variables or add your custom ones to be passed to `lamp` container. The file is loaded as env file in the `lamp` service in `docker-compose.yml`.
+In `devcontainer.env` you can change Configuration Environment Variables ([see below](#configuration-environment-variables)) or add your custom environment variables to be passed to the `lamp` container. This file is loaded as the env file in the `lamp` service inside its definition in `docker-compose.yml`.
 
-## Configuration Environment variables
+## Configuration Environment Variables
+
+There are some predefined variables changing which will affect some aspects of the setup. 
+Use them to quickly configure some things.
 
 ### MYSQL_ROOT_PASSWORD
 
