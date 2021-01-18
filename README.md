@@ -15,7 +15,7 @@ Following this pattern helps running the same project on any OS with [maximum fi
 
 ## Quick Start
 
-Copy whole `.devcontainer` folder into your workspace root and run "Remote-Containers: Open Folder in Container" on it. 
+Copy whole `.devcontainer` folder into your workspace root and run [Remote-Containers: Open Folder in Container](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container) command on it. 
 Web Server will be available on `http://0.0.0.0:8080/`. You can change the port in the `docker-compose.yml`.
 
 
