@@ -1,0 +1,23 @@
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4
+
+[mysqld]
+# Use multi-byte UTF (utf8mb4) encoding by default (supports emojis, Asian symbols, mathematical symbols, etc.)
+character_set_server = utf8mb4
+collation_server = utf8mb4_unicode_ci
+init_connect = 'SET NAMES utf8mb4'
+
+# Set innodb as default
+default_storage_engine = InnoDB
+
+innodb_buffer_pool_size = 256M
+innodb_log_buffer_size = 8M
+innodb_log_file_size = 128MB
+
+innodb_file_per_table = 1
+
+# Max packets
+max_allowed_packet = 128M

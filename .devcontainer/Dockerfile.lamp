@@ -1,0 +1,189 @@
+# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.134.0/containers/php/.devcontainer/base.Dockerfile
+ARG VARIANT="7"
+FROM mcr.microsoft.com/vscode/devcontainers/php:0-${VARIANT}
+
+# Enable Apache mod rewrite 
+RUN a2enmod rewrite
+
+# Enable additional repos
+RUN set -xe; \
+	sed -i 's/main/main contrib non-free/' /etc/apt/sources.list; \
+	# blackfire.io repo
+	curl -fsSL https://packages.blackfire.io/gpg.key | apt-key add -; \
+	echo "deb https://packages.blackfire.io/debian any main" | tee /etc/apt/sources.list.d/blackfire.list; \
+	# git-lfs repo
+	curl -fsSL https://packagecloud.io/github/git-lfs/gpgkey | apt-key add -; \
+	echo 'deb https://packagecloud.io/github/git-lfs/debian buster main' | tee /etc/apt/sources.list.d/github_git-lfs.list; \
+	# MSQSQL repo - msodbcsql17, pecl/sqlsrv and pecl/pdo_sqlsrv (PHP 7.0+ only)
+	curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add -; \
+	echo 'deb https://packages.microsoft.com/debian/10/prod buster main' | tee /etc/apt/sources.list.d/mssql.list;
+
+# Install essential tools and compile PHP extensions
+RUN set -xe; \
+	# Note: essential build tools (g++, gcc, make, etc) are included upstream as persistent packages.
+	# See https://github.com/docker-library/php/blob/406fcd31e62d633f62ac0d7bc5fc29aa1b3929fc/7.2/buster/fpm/Dockerfile#L18-L40
+	buildDeps=" \
+		libc-client2007e-dev \
+		libfreetype6-dev \
+		libgpgme11-dev \
+		libicu-dev \
+		libjpeg62-turbo-dev \
+		libkrb5-dev \
+		libldap2-dev \
+		libmagickcore-dev \
+		libmagickwand-dev \
+		libmemcached-dev \
+		libmhash-dev \
+		libpng-dev \
+		libpq-dev \
+		libwebp-dev \
+		libssh2-1-dev \
+		libxpm-dev \
+		libxslt1-dev \
+		libzip-dev \
+		unixodbc-dev \
+	"; \
+	apt-get update >/dev/null; \
+	# Necessary for msodbcsql17 (MSSQL)
+	ACCEPT_EULA=Y \
+	apt-get -y --no-install-recommends install >/dev/null \
+		$buildDeps \
+		blackfire-php \
+		libc-client2007e \
+		libfreetype6 \
+		libgpgme11 \
+		libicu63 \
+		libjpeg62-turbo \
+		libldap-2.4-2 \
+		libmagickcore-6.q16-*-extra \
+		libmagickwand-6.q16-6 \
+		libmemcached11 \
+		libmemcachedutil2 \
+		libmhash2 \
+		libpng16-16 \
+		libpq5 \
+		libssh2-1 \
+		libxpm4 \
+		libxslt1.1 \
+		libzip4 \
+		msodbcsql17 \
+	;\
+	# SSH2 must be installed from source for PHP 7.x
+	git clone https://github.com/php/pecl-networking-ssh2.git /usr/src/php/ext/ssh2 && rm -rf /usr/src/php/ext/ssh2/.git; \
+	\
+	# --with-png-dir has been removed in PHP 7.4. libpng is required
+	docker-php-ext-configure >/dev/null gd \
+		--with-freetype \
+		--with-jpeg \
+		--with-webp \
+		--with-xpm; \
+	PHP_OPENSSL=yes docker-php-ext-configure >/dev/null imap --with-kerberos --with-imap-ssl; \
+	docker-php-ext-configure >/dev/null ldap --with-libdir=lib/x86_64-linux-gnu/; \
+	docker-php-ext-configure >/dev/null pgsql --with-pgsql=/usr/local/pgsql/; \
+	docker-php-ext-configure >/dev/null zip; \
+	\
+	docker-php-ext-install >/dev/null -j$(nproc) \
+		bcmath \
+		bz2 \
+		calendar\
+		exif \
+		gd \
+		gettext \
+		imap \
+		intl \
+		ldap \
+		mysqli \
+		opcache \
+		pcntl \
+		pdo_mysql \
+		pdo_pgsql \
+		pgsql \
+		soap \
+		sockets \
+		ssh2 \
+		xsl \
+		zip \
+		sysvsem \
+	;\
+	pecl update-channels; \
+	pecl install >/dev/null </dev/null \
+		apcu \
+		gnupg \
+		imagick \
+		# Use memcached (not memcache) for PHP 7.x
+		memcached \
+		pdo_sqlsrv \
+		redis \
+		sqlsrv \
+		xdebug \
+		xhprof \
+	;\
+	docker-php-ext-enable \
+		apcu \
+		gnupg \
+		imagick \
+		memcached \
+		pdo_sqlsrv \
+		redis \
+		sqlsrv \
+	;\
+	# Cleanup
+	docker-php-source delete; \
+	rm -rf /tmp/pear ~/.pearrc; \
+	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps >/dev/null; \
+	apt-get clean; rm -rf /var/lib/apt/lists/*
+
+# Install Additional dev tools
+RUN set -xe; \
+	# Create man direcotries, otherwise some packages may not install (e.g. postgresql-client)
+	# This should be a temporary workaround until fixed upstream: https://github.com/debuerreotype/debuerreotype/issues/10
+	mkdir -p /usr/share/man/man1 /usr/share/man/man7; \
+	apt-get update >/dev/null; \
+	apt-get -y --no-install-recommends install >/dev/null \
+		cron \
+		dnsutils \
+		git \
+		git-lfs \
+		ghostscript \
+		# html2text binary - used for self-testing (php-fpm)
+		html2text \
+		imagemagick \
+		iputils-ping \
+		less \
+		# cgi-fcgi binary - used for self-testing (php-fpm)
+		libfcgi-bin \
+		mc \
+		msmtp \
+		# Debian 10 ships with MariaDB instead of MySQL
+		mariadb-client \
+		nano \
+		openssh-client \
+		openssh-server \
+		postgresql-client \
+		procps \
+		pv \
+		rsync \
+		sudo \
+		supervisor \
+		unzip \
+		webp \
+		zip \
+	;\
+	# Cleanup
+	apt-get clean; rm -rf /var/lib/apt/lists/*
+
+# Install MariaDB
+RUN set -xe; \
+	apt-get update >/dev/null; \
+	apt-get -y --no-install-recommends install >/dev/null \ 
+		mariadb-server;\
+	# Cleanup
+	apt-get clean; rm -rf /var/lib/apt/lists/*
+
+# [Optional] Install a version of Node.js using nvm for front end dev
+ARG INSTALL_NODE="true"
+ARG NODE_VERSION="lts/*"
+RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "source /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
+
+# [Optional] Uncomment this line to install global node packages.
+# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1

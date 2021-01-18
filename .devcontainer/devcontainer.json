@@ -1,0 +1,29 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json
+
+{
+    "name": "My Project",
+    // You can add Compose files. Order matters.
+    // Before removing files run `rcm cleanup` to remove everything, or there will be dangling volumes
+    "dockerComposeFile": [ "docker-compose.yml", "docker-compose.named-volume.yml" ],
+    "service": "lamp",
+    "workspaceFolder": "/workspace",
+    "shutdownAction": "stopCompose",
+    "postCreateCommand": "$(pwd)/.devcontainer/post-create-command.sh",
+
+	// Set *default* container specific settings.json values on container create.
+	"settings": { 
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"felixfbecker.php-debug",
+        "felixfbecker.php-intellisense"
+        ,"vscode-ext.sync-rsync"
+	],
+
+	// Comment out to connect as root instead.
+    "remoteUser": "vscode",
+    
+    // Environment variables are passed via devcontainer.env
+}

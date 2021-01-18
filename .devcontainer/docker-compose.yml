@@ -1,0 +1,48 @@
+# Example: https://github.com/microsoft/vscode-dev-containers/blob/master/containers/javascript-node-mongo/.devcontainer/docker-compose.yml#L22
+version: "3"
+
+# Create a network all containers can connect to
+networks:
+  lamp:
+
+services: 
+  # Main container running LAMP stack. Don't change its name
+  lamp:
+    # You can change image name
+    image: "devcontainer-lamp:1.0"
+    build:
+      context: "."
+      dockerfile: "Dockerfile.lamp"
+    # Import Environment variables
+    env_file: devcontainer.env
+    volumes:
+      # Mounts the project folder to '/workspace'. The target path inside the container
+      # should match what your application expects. In this case, the compose file is
+      # in a sub-folder, so you will mount '..'. You would then reference this path as the
+      # 'workspaceFolder' in '.devcontainer/devcontainer.json' so VS Code starts here.
+      - ..:/workspace:delegated
+      # Database data volume
+      - db_data:/var/lib/mysql
+    ports: 
+      - 8080:80
+      - 3306
+    # Set upstream DNS to point to Docker IP. 
+    # For some reason required in devcontainer's docker-compose.yml for internet in the whole lamp network to work
+    dns:
+      - 192.168.65.1
+    # Connect to the shared lamp network
+    networks:
+      - lamp
+
+  # Another Service Example
+  # service_name:
+  #   image: "image:1.0"
+  #   networks:
+  #    # Connect service to the 'lamp' network, and set network alias so that this service
+  #    # could be reached from the lamp container by this name
+  #    lamp:
+  #      aliases:
+  #         - network_name_for_this_service
+
+volumes:
+  db_data:

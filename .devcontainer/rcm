@@ -1,0 +1,208 @@
+#!/usr/bin/env node
+
+const version = '2020-01-17';
+
+const childProcess = require('child_process');
+const jsonc = require('jsonc-parser');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Singleton DockerCompose object to encapsulate working with docker-compose binary
+ */
+const DockerCompose = {
+    composeFiles: '',
+    projectName: '',
+    cwd: '',
+
+    /**
+     * Set composeFiles property
+     * @param {String|Array} files 
+     * @returns {DockerCompose}
+     * @throws {Error}
+     */
+    setComposeFiles(files) {
+        switch (typeof files) {
+            case 'string':
+                this.composeFiles = files;
+                break;
+            case 'object':
+                this.composeFiles = files.join(" -f ");
+                break;
+            default:
+                throw new Error(`DockerComposeFile value is empty in devcontainer.json (${jsonFilePath})`);
+        }
+        return this;
+    },
+
+    /**
+     * Set projectName property
+     * @param {String} name 
+     * @returns {DockerCompose}
+     */
+    setProjectName(name) {
+        this.projectName = name;
+        return this;
+    },
+
+    /**
+     * Set cwd value for child process spawn
+     * @param {String} path
+     * @returns {DockerCompose}
+     */
+    setCwd(path) {
+        this.cwd = path;
+        return this;
+    },
+
+    /**
+     * Run docker-compose command and pass all other arguments
+     * @param {String} command 
+     */
+    run(command) {
+        let asyncChild = childProcess.spawn('docker-compose', 
+            `-f ${this.composeFiles} --project-name ${this.projectName || '_devcontainer'} ${command}`.split(" "), 
+            { cwd: this.cwd }
+        );
+        asyncChild.stdout.on('data', data => process.stdout.write(data));
+        asyncChild.stderr.on('data', data => process.stderr.write(data));
+    }
+};
+
+/**
+ * Encapsulate .devcontainer related functions
+ */
+const DevContainer = {
+    cwd: '',
+    config: {},
+    composeProjectName: '',
+
+    /**
+     * Finds .devcontainer directory in the filesystem tree starting from process.cwd and upwards
+     * 
+     * @returns {String}
+     * @throws {Error}
+     */
+    getCwd () {
+        // Add nonexistent path to get current path into traversePath.dir
+        let traversePath = path.parse(path.join(process.cwd(), 'nonexistent'));
+
+        // Iterate on traversePath.dir searching for .devcontainer/ until traversePath.base is empty (reached root)
+        while (traversePath.base != '') {
+            let searchFolder = path.join(traversePath.dir, '.devcontainer')
+            if (fs.existsSync(searchFolder)) {
+                return searchFolder
+            } else {
+                // "traverse" upwards
+                traversePath = path.parse(traversePath.dir);
+            }
+        }
+
+        // Found nothing
+        throw new Error('Could not find .devcontainer dir');
+    },
+
+    /**
+     * Parse devcontainer.json and return as object
+     * 
+     * @returns {*}
+     * @throws {Error}
+     */
+    getConfig () {
+        const devContainerDir = this.getCwd();
+        const jsonFilePath = path.join(devContainerDir, 'devcontainer.json');
+
+        try {
+            fs.accessSync(jsonFilePath, fs.constants.R_OK);
+        } catch (error) {
+            throw new Error(`Cannot read devcontainer.json (${jsonFilePath})\n${error}`);
+        }
+
+        try {
+            return jsonc.parse(fs.readFileSync(jsonFilePath).toString());
+        } catch (error) {
+            throw new Error(`Cannot parse devcontainer.json (${jsonFilePath})\n${error}`);
+        }
+    },
+
+    /**
+     * Devcontainer uses following template for Compose project name: <base directory>_devcontainer
+     * Spaces in base directory name are replaced with underscores
+     * 
+     * @returns {String}
+     * @throws {Error}
+     */
+    getComposeProjectName () {
+        const devContainerDir = this.getCwd();
+        const devContainerPath = path.parse(devContainerDir);
+        return `${path.basename(devContainerPath.dir).replace(" ", "_")}_devcontainer`;
+    },
+
+    /**
+     * Init all values
+     */
+    init() {
+        this.cwd = this.getCwd();
+        this.config = this.getConfig();
+        this.composeProjectName = this.getComposeProjectName();
+    }
+};
+
+/**
+ * Remove devcontainer containers and volumes
+ */
+function commandCleanup() {
+    try {
+        DevContainer.init();
+        DockerCompose
+            .setComposeFiles(DevContainer.config.dockerComposeFile)
+            .setCwd(DevContainer.cwd)
+            .setProjectName(DevContainer.composeProjectName)
+            .run('down --volumes --remove-orphans');
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+/**
+ * Print docker-compose config for all included in devcontainer.json compose files
+ */
+function commandConfig () {
+    try {
+        DevContainer.init();
+        DockerCompose
+            .setComposeFiles(DevContainer.config.dockerComposeFile)
+            .setCwd(DevContainer.cwd)
+            .run('config');
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+/**
+ * Print help
+ */
+function commandHelp () {
+    console.log("rcm.js [ cleanup | config | help ]");
+}
+
+/**
+ * ---- RUNTIME ----
+ */
+const $argv = process.argv.slice(2);
+
+switch ($argv[0]) {
+    case "clean":
+    case "cleanup":
+        commandCleanup();
+        break;
+    case "config":
+        commandConfig();
+        break;
+    case "version":
+        console.log(version)
+        break;
+    default:
+        commandHelp();
+        break;
+}

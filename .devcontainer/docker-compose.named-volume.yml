@@ -1,0 +1,15 @@
+# This file makes volume a name volume
+
+services:
+  lamp:
+    volumes:
+      # Bind mount over the network all sourcecode to /source
+      - ..:/source:cached
+      # Bind mount over the network .devcontainer folder to be always
+      # accessible in /workspace at the start
+      - .:/workspace/.devcontainer:cached
+      # The rest of the workspace is a named volume (best performance)
+      - target:/workspace
+
+volumes:
+  target:
