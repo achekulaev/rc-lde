@@ -6,11 +6,12 @@ Following this pattern helps running the same project on any OS with [maximum fi
 
 ## Requirements
 
-- [Visual Studio Code](https://code.visualstudio.com/)
-- [Remote-Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-- Linux: `docker` and `docker-compose` installed
-- MacOS, Windows: [Docker Desktop](https://www.docker.com/products/docker-desktop) installed
-- Windows: [WSL2 required](https://code.visualstudio.com/blogs/2020/07/01/containers-wsl)
+| MacOS | Linux | Windows |
+|-------|-------|---------|
+| [Visual Studio Code](https://code.visualstudio.com/) | [Visual Studio Code](https://code.visualstudio.com/) | [Visual Studio Code](https://code.visualstudio.com/) |
+| [Remote-Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | [Remote-Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | [Remote-Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop) | `docker` and `docker-compose` | [Docker Desktop](https://www.docker.com/products/docker-desktop)
+| | | [WSL2 with presetup](https://code.visualstudio.com/blogs/2020/07/01/containers-wsl)
 
 ## Quick Start
 
