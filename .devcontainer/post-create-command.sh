@@ -39,16 +39,19 @@ sudo mysqladmin -u root password "$MYSQL_ROOT_PASSWORD"
 # Make vscode user owner of /workspace dir
 sudo chown vscode "$(pwd)"
 
+# Sylink /workspace to Apache docroot
 sudo chmod a+x "$(pwd)" &&
     sudo rm -rf /var/www/html && 
     sudo ln -s "$(pwd)" /var/www/html
 
-echo "Performing initial files sync to the container..."
-(
+# Named volume pattern
+if [[ -d /source ]]; then
+    echo "Performing initial files sync to the container..."
+
     # make * include dot files for rsync
     shopt -s dotglob && 
     # initial rsync
     rsync --recursive --links --perms --times --omit-dir-times --exclude='.devcontainer/*' --noatime /source/* /workspace/
-)
 
-echo "Don't forget to set-up Sync-Rsync extension to sync to /source"
+    echo "NOTE: Don't forget to set-up Sync-Rsync extension to sync to /source"
+fi
