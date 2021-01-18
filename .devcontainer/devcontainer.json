@@ -3,8 +3,8 @@
 {
     "name": "My Project",
     // You can add Compose files. Order matters.
-    // Before removing files run `rcm cleanup` to remove everything, or there will be dangling volumes
-    "dockerComposeFile": [ "docker-compose.yml", "docker-compose.named-volume.yml" ],
+    // NOTE: Before removing files run `./rcm cleanup` to remove everything, or there will be dangling volumes
+    "dockerComposeFile": [ "docker-compose.yml" ],
     "service": "lamp",
     "workspaceFolder": "/workspace",
     "shutdownAction": "stopCompose",
