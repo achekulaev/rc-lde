@@ -75,11 +75,11 @@ Set to `1` to set [XDebug Mode](https://xdebug.org/docs/all_settings#mode) to `x
 
 ## Customize Container Configuration
 
-There is automation in `post-create-command.sh` that copies over properly named files from `config/...` directory tree. This allows you to easily customize PHP and MariaDB/MySQL settings without fiddling with automation yourself.
+There is automation in `post-create-command.sh` that copies properly named files from `config/...` directory to the container after its creation. This allows to easily customize PHP and MariaDB/MySQL settings without fiddling with automation.
 
 ### Customize PHP settings
 
-Edit `config/php/php.ini` then "Remote-Containers: Rebuild container". Affects both Apache and CLI versions. 
+Edit `config/php/php.ini` then "Remote-Containers: Rebuild container" (affects both Apache and CLI versions).
 
 ### Customize MariaDB/MySQL settings
 
